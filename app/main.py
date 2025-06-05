@@ -1,10 +1,14 @@
 import uuid
+import os
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.models import IngestRequest
 from app.store import ingestion_store, batch_status_store
 from app.queue_manager import enqueue_batches, sort_job_queue, job_queue
 from app.processor import processing_lock, process_batch
+
+# Get port from environment variable for production
+PORT = int(os.getenv("PORT", 8000))
 
 app = FastAPI(
     title="Data Ingestion API",
@@ -94,7 +98,15 @@ async def trigger_processing():
             job = job_queue.pop(0)
             await process_batch(job["batch_id"])
 
-# Add health check endpoint
+
+# Root endpoint for health check
+@app.get("/",
+         summary="Root endpoint",
+         response_description="Returns OK if the service is running")
+async def root():
+    return {"status": "OK", "message": "Data Ingestion API is running"}
+
+# Health check endpoint
 @app.get("/health",
          summary="Health check endpoint",
          response_description="Returns OK if the service is healthy")
